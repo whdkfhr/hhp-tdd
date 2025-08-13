@@ -35,15 +35,6 @@ public class PointController {
         // id 유효성 체크
         validateUserId(id);
 
-        // 없는 id 인 경우?
-        // point 가 0 이라고 없는 id 라고 판단해도 되는가?
-        /*
-        UserPoint userPoint = userPointTable.selectById(id);
-        if (userPoint.point() == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
-        }
-        */
-
         return userPointTable.selectById(id);
     }
 
