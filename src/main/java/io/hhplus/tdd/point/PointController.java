@@ -16,13 +16,10 @@ import java.util.List;
 @RequestMapping("/point")
 public class PointController {
 
-    private static final Logger log = LoggerFactory.getLogger(PointController.class);
-    private final UserPointTable userPointTable;
-    private final PointHistoryTable pointHistoryTable;
+    private final PointService pointService;
 
-    public PointController(UserPointTable userPointTable, PointHistoryTable pointHistoryTable) {
-        this.userPointTable = userPointTable;
-        this.pointHistoryTable = pointHistoryTable;
+    public PointController(PointService pointService) {
+        this.pointService = pointService;
     }
 
     /**
@@ -32,10 +29,7 @@ public class PointController {
     public UserPoint point(
             @PathVariable long id
     ) {
-        // id 유효성 체크
-        validateUserId(id);
-
-        return userPointTable.selectById(id);
+        return pointService.point(id);
     }
 
     /**
@@ -45,10 +39,7 @@ public class PointController {
     public List<PointHistory> history(
             @PathVariable long id
     ) {
-        // id 유효성 체크
-        validateUserId(id);
-
-        return pointHistoryTable.selectAllByUserId(id);
+        return pointService.history(id);
     }
 
     /**
@@ -59,19 +50,7 @@ public class PointController {
             @PathVariable long id,
             @RequestBody long amount
     ) {
-        // id 유효성 체크
-        validateUserId(id);
-        // amount 유효성 체크
-        validateChargeAmount(amount);
-
-        UserPoint currentUserPoint = userPointTable.selectById(id);
-        // 포인트 합산
-        long newPoint = currentUserPoint.point() + amount;
-
-        // 충전 내역 update
-        pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
-
-        return userPointTable.insertOrUpdate(id, newPoint);
+        return pointService.charge(id, amount);
     }
 
     /**
@@ -82,44 +61,6 @@ public class PointController {
             @PathVariable long id,
             @RequestBody long amount
     ) {
-        // id 유효성 체크
-        validateUserId(id);
-        // amount 유효성 체크
-        validateChargeAmount(amount);
-
-        UserPoint currentUserPoint = userPointTable.selectById(id);
-        // 잔고 부족 체크
-        if(currentUserPoint.point() < amount) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    String.format("포인트가 부족합니다. 현재 포인트: %d, 요청 포인트: %d",
-                            currentUserPoint.point(), amount)
-            );
-        }
-        // 잔고 update
-        long newPoint = currentUserPoint.point() - amount;
-
-        // 사용 내역 update
-        pointHistoryTable.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
-
-        return userPointTable.insertOrUpdate(id, newPoint);
-    }
-
-    private void validateUserId(long id) {
-        if (id <= 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "유효하지 않은 사용자 ID입니다: " + id
-            );
-        }
-    }
-
-    private void validateChargeAmount(long amount) {
-        if (amount <= 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "충전 금액은 0보다 커야 합니다: " + amount
-            );
-        }
+        return pointService.use(id, amount);
     }
 }
